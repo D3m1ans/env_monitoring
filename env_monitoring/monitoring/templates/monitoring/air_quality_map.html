@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта качества воздуха</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map {
+            width: 100%;
+            height: 600px;
+        }
+        .form-container {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Карта качества воздуха</h1>
+
+    <div class="form-container">
+        <form id="date-filter-form">
+            <label for="start_date">Начальная дата:</label>
+            <input type="date" id="start_date" name="start_date">
+            <label for="end_date">Конечная дата:</label>
+            <input type="date" id="end_date" name="end_date">
+            <button type="submit">Фильтровать</button>
+        </form>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        // Инициализация карты
+        const map = L.map('map').setView([55.7558, 37.6173], 5); // Центр карты (Москва)
+
+        // Добавление базового слоя
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Функция для обновления карты с учетом фильтра
+        function updateMap(start_date = '', end_date = '') {
+            const url = `/air-quality-data/?start_date=${start_date}&end_date=${end_date}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    // Очищаем карту перед добавлением новых данных
+                    map.eachLayer(function(layer) {
+                        if (layer instanceof L.Marker) {
+                            map.removeLayer(layer);
+                        }
+                    });
+
+                    // Добавляем новые данные на карту
+                    L.geoJSON(data, {
+                        onEachFeature: function (feature, layer) {
+                            const props = feature.properties;
+                            const popupContent = `
+                                <strong>${props.city_name}</strong><br>
+                                PM2.5: ${props.pm25}<br>
+                                PM10: ${props.pm10}<br>
+                                NO2: ${props.no2}<br>
+                                CO: ${props.co}<br>
+                                SO2: ${props.so2}<br>
+                                Время: ${props.timestamp}
+                            `;
+                            layer.bindPopup(popupContent);
+                        }
+                    }).addTo(map);
+                })
+                .catch(error => console.error('Ошибка при загрузке данных:', error));
+        }
+
+        // Инициализация карты с данными без фильтрации
+        updateMap();
+
+        // Обработчик отправки формы фильтрации
+        document.getElementById('date-filter-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const start_date = document.getElementById('start_date').value;
+            const end_date = document.getElementById('end_date').value;
+            updateMap(start_date, end_date);
+        });
+    </script>
+</body>
+</html>
