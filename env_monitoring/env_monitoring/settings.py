@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -39,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -86,7 +88,15 @@ DATABASES = {
     }
 }
 
+CELERY_BEAT_SCHEDULE = {
+    'update-air-quality-every-4-hours': {
+        'task': 'monitoring.tasks.update_air_quality_data',  # Задача, которая будет выполняться
+        'schedule': timedelta(hours=1),  # Периодичность — каждые 4 часа
+    },
+}
 
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
