@@ -92,12 +92,19 @@ DATABASES = {
 # CELERY_BEAT_SCHEDULE = {
 #     'fetch-air-quality-every-4-hours': {
 #         'task': 'monitoring.tasks.fetch_and_save_air_quality',  # Имя вашей задачи
-#         'schedule': timedelta(hours=4),  # Интервал выполнения
+#         'schedule': timedelta(hours=1),  # Интервал выполнения
 #     },
 # }
-#
+
 CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
 CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
+CELERY_TIMEZONE = 'UTC'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
+
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+
+# CELERY_BEAT_SCHEDULE = "django_celery_beat.schedulers:DatabaseScheduler"
 
 CACHES = {
     'default': {
