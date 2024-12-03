@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_celery_beat',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -88,15 +89,24 @@ DATABASES = {
     }
 }
 
-CELERY_BEAT_SCHEDULE = {
-    'update-air-quality-every-4-hours': {
-        'task': 'monitoring.tasks.update_air_quality_data',  # Задача, которая будет выполняться
-        'schedule': timedelta(hours=1),  # Периодичность — каждые 4 часа
-    },
+# CELERY_BEAT_SCHEDULE = {
+#     'fetch-air-quality-every-4-hours': {
+#         'task': 'monitoring.tasks.fetch_and_save_air_quality',  # Имя вашей задачи
+#         'schedule': timedelta(hours=4),  # Интервал выполнения
+#     },
+# }
+#
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1 ',
+    }
 }
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_CACHE_BACKEND = 'default'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
