@@ -46,21 +46,21 @@ def air_quality_view(request):
 def air_quality_data(request):
     # Выбираем данные с координатами и параметрами загрязнений
 
-    start_date = request.GET.get('start_date')  # Начальная дата
-    end_date = request.GET.get('end_date')  # Конечная дата
+    start_datetime = request.GET.get('start_datetime')  # Начальная дата
+    end_datetime = request.GET.get('end_datetime')  # Конечная дата
 
     # Фильтрация данных по дате, если даты указаны
-    if start_date:
-        start_date = parse_datetime(start_date)
-    if end_date:
-        end_date = parse_datetime(end_date)
+    if start_datetime:
+        start_datetime = parse_datetime(start_datetime)
+    if end_datetime:
+        end_datetime = parse_datetime(end_datetime)
 
     data = PollutionData.objects.all()
 
-    if start_date:
-        data = data.filter(timestamp__gte=start_date)
-    if end_date:
-        data = data.filter(timestamp__lte=end_date)
+    if start_datetime:
+        data = data.filter(timestamp__gte=start_datetime)
+    if end_datetime:
+        data = data.filter(timestamp__lte=end_datetime)
 
     features = []
     for entry in data:

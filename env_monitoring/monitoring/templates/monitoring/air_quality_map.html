@@ -21,10 +21,10 @@
 
     <div class="form-container">
         <form id="date-filter-form">
-            <label for="start_date">Начальная дата:</label>
-            <input type="date" id="start_date" name="start_date">
-            <label for="end_date">Конечная дата:</label>
-            <input type="date" id="end_date" name="end_date">
+            <label for="start_datetime">Начальное время:</label>
+            <input type="datetime-local" id="start_datetime" name="start_datetime">
+            <label for="end_datetime">Конечное время:</label>
+            <input type="datetime-local" id="end_datetime" name="end_datetime">
             <button type="submit">Фильтровать</button>
         </form>
     </div>
@@ -42,8 +42,8 @@
         }).addTo(map);
 
         // Функция для обновления карты с учетом фильтра
-        function updateMap(start_date = '', end_date = '') {
-            const url = `/air-quality-data/?start_date=${start_date}&end_date=${end_date}`;
+        function updateMap(start_datetime = '', end_datetime = '') {
+            const url = `/air-quality-data/?start_datetime=${start_datetime}&end_datetime=${end_datetime}`;
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
@@ -80,9 +80,9 @@
         // Обработчик отправки формы фильтрации
         document.getElementById('date-filter-form').addEventListener('submit', function (e) {
             e.preventDefault();
-            const start_date = document.getElementById('start_date').value;
-            const end_date = document.getElementById('end_date').value;
-            updateMap(start_date, end_date);
+            const start_datetime = document.getElementById('start_datetime').value;
+            const end_datetime = document.getElementById('end_datetime').value;
+            updateMap(start_datetime, end_datetime);
         });
     </script>
 </body>
