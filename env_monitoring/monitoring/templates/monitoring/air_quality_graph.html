@@ -50,7 +50,7 @@
                     return response.json();
                 })
                 .then(data => {
-                    buildChart(data);
+                    buildChart(data, startDate, endDate);
                 })
                 .catch(error => {
                     console.error("Ошибка при загрузке данных:", error);
@@ -59,7 +59,7 @@
 
         let chartInstance = null;
 
-        function buildChart(data) {
+        function buildChart(data, startDate, endDate) {
             const timestamps = data.map(d => new Date(d.timestamp));
             const pm25 = data.map(d => d.pm25);
             const pm10 = data.map(d => d.pm10);
@@ -71,6 +71,13 @@
 
             if (chartInstance) {
                 chartInstance.destroy(); // Уничтожаем предыдущий график, если он существует
+            }
+
+            let chartTitle = 'График качества воздуха';
+            if (startDate && endDate) {
+                chartTitle += ` за период с ${new Date(startDate).toLocaleString()} по ${new Date(endDate).toLocaleString()}`;
+            } else {
+                chartTitle += ' (период не выбран)';
             }
 
             chartInstance = new Chart(ctx, {
@@ -86,9 +93,39 @@
                     ]
                 },
                 options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: chartTitle
+                        }
+                    },
                     scales: {
-                        x: { type: 'time', time: { unit: 'minute', tooltipFormat: 'll HH:mm' }, title: { display: true, text: 'Дата и время' } },
-                        y: { beginAtZero: true, title: { display: true, text: 'Концентрация (мкг/м³)' } }
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'minute',
+                                displayFormats: {
+                                    minute: 'dd.MM.yyyy HH:mm',  // Формат для отображения даты и времени
+                                    hour: 'dd.MM.yyyy HH:mm',    // Формат для отображения даты и времени (для часов)
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Дата и время'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 30
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Концентрация (мкг/м³)'
+                            }
+                        }
                     }
                 }
             });
