@@ -10,132 +10,89 @@
 <body>
     <h1>График качества воздуха</h1>
 
-    <!-- Форма для выбора города и периода -->
-    <form id="city-form">
-        <label for="city">Выберите город:</label>
-        <select id="city" name="city">
-            {% for city in cities %}
-                <option value="{{ city }}">{{ city }}</option>
-            {% endfor %}
-        </select>
-        <br><br>
+    <!-- Выбор города -->
+    <label for="city">Выберите город:</label>
+    <select id="city">
+        <option value="">-- Выберите город --</option>
+        {% for city in cities %}
+            <option value="{{ city }}">{{ city }}</option>
+        {% endfor %}
+    </select>
 
-        <label for="start-date">Начальная дата:</label>
-        <input type="datetime-local" id="start-date" name="start-date">
-        <br><br>
+    <!-- Поля выбора даты -->
+    <label for="start_date">Начальная дата:</label>
+    <input type="datetime-local" id="start_date">
 
-        <label for="end-date">Конечная дата:</label>
-        <input type="datetime-local" id="end-date" name="end-date">
-        <br><br>
+    <label for="end_date">Конечная дата:</label>
+    <input type="datetime-local" id="end_date">
 
-        <button type="submit">Показать график</button>
-    </form>
+    <button id="showGraph">Показать график</button>
 
     <!-- Канвас для графика -->
     <canvas id="airQualityChart" width="400" height="200"></canvas>
 
     <script>
-    let myChart = null;  // Переменная для хранения графика
+        document.getElementById('showGraph').addEventListener('click', () => {
+            const city = document.getElementById('city').value;
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
 
-    document.getElementById('city-form').addEventListener('submit', function(event) {
-        event.preventDefault();  // Предотвратить перезагрузку страницы
+            if (!city) {
+                alert("Пожалуйста, выберите город.");
+                return;
+            }
 
-        const city = document.getElementById('city').value;
-        const startDate = document.getElementById('start-date').value;
-        const endDate = document.getElementById('end-date').value;
-
-        // Формируем URL с параметрами
-        let url = `/air-quality-graph/?city=${city}`;
-        if (startDate) {
-            url += `&start_date=${startDate}`;
-        }
-        if (endDate) {
-            url += `&end_date=${endDate}`;
-        }
-
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                buildChart(data);  // Строим график
-            })
-            .catch(error => console.error('Ошибка при загрузке данных:', error));
-    });
-
-    function buildChart(data) {
-        // Удаляем старый график, если он существует
-        if (myChart) {
-            myChart.destroy();
-        }
-
-        const timestamps = data.map(d => new Date(d.timestamp));  // Преобразуем строку в объект Date
-        const pm25 = data.map(d => d.pm25);
-        const pm10 = data.map(d => d.pm10);
-        const no2 = data.map(d => d.no2);
-        const co = data.map(d => d.co);
-        const so2 = data.map(d => d.so2);
-
-        const ctx = document.getElementById('airQualityChart').getContext('2d');
-        myChart = new Chart(ctx, {  // Сохраняем новый график в переменную myChart
-            type: 'line',
-            data: {
-                labels: timestamps,
-                datasets: [
-                    {
-                        label: 'PM2.5',
-                        data: pm25,
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        fill: false
-                    },
-                    {
-                        label: 'PM10',
-                        data: pm10,
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        fill: false
-                    },
-                    {
-                        label: 'NO2',
-                        data: no2,
-                        borderColor: 'rgba(255, 159, 64, 1)',
-                        fill: false
-                    },
-                    {
-                        label: 'CO',
-                        data: co,
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        fill: false
-                    },
-                    {
-                        label: 'SO2',
-                        data: so2,
-                        borderColor: 'rgba(153, 102, 255, 1)',
-                        fill: false
+            fetch(`/air-quality-graph/?city=${encodeURIComponent(city)}&start_date=${startDate}&end_date=${endDate}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Not Found');
                     }
-                ]
-            },
-            options: {
-                scales: {
-                    x: {
-                        type: 'time',  // Указываем тип оси как time
-                        time: {
-                            unit: 'minute',  // Настройка для времени
-                            tooltipFormat: 'll HH:mm'
-                        },
-                        title: {
-                            display: true,
-                            text: 'Дата и время'
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Концентрация (мкг/м³)'
-                        }
+                    return response.json();
+                })
+                .then(data => {
+                    buildChart(data);
+                })
+                .catch(error => {
+                    console.error("Ошибка при загрузке данных:", error);
+                });
+        });
+
+        let chartInstance = null;
+
+        function buildChart(data) {
+            const timestamps = data.map(d => new Date(d.timestamp));
+            const pm25 = data.map(d => d.pm25);
+            const pm10 = data.map(d => d.pm10);
+            const no2 = data.map(d => d.no2);
+            const co = data.map(d => d.co);
+            const so2 = data.map(d => d.so2);
+
+            const ctx = document.getElementById('airQualityChart').getContext('2d');
+
+            if (chartInstance) {
+                chartInstance.destroy(); // Уничтожаем предыдущий график, если он существует
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [
+                        { label: 'PM2.5', data: pm25, borderColor: 'rgba(255, 99, 132, 1)', fill: false },
+                        { label: 'PM10', data: pm10, borderColor: 'rgba(54, 162, 235, 1)', fill: false },
+                        { label: 'NO2', data: no2, borderColor: 'rgba(255, 159, 64, 1)', fill: false },
+                        { label: 'CO', data: co, borderColor: 'rgba(75, 192, 192, 1)', fill: false },
+                        { label: 'SO2', data: so2, borderColor: 'rgba(153, 102, 255, 1)', fill: false }
+                    ]
+                },
+                options: {
+                    scales: {
+                        x: { type: 'time', time: { unit: 'minute', tooltipFormat: 'll HH:mm' }, title: { display: true, text: 'Дата и время' } },
+                        y: { beginAtZero: true, title: { display: true, text: 'Концентрация (мкг/м³)' } }
                     }
                 }
-            }
-        });
-    }
+            });
+        }
     </script>
 </body>
 </html>

@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.utils.dateparse import parse_datetime
+from django.db.models import Q
+from django.db.models import Func
 from datetime import datetime
 
 from .services.data_fetcher import save_air_pollution_data
@@ -91,26 +93,40 @@ def air_quality_map(request):
     return render(request, 'monitoring/air_quality_map.html')
 
 def air_quality_graph(request):
-    city_name = request.GET.get('city')
+    # Получаем параметры запроса
+    city_name = request.GET.get('city', '').strip()
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
-    # Начинаем фильтрацию по городу
-    filter_conditions = {'city_name': city_name}
+    # Отладка: выводим параметры
+    print(f"City: {city_name}, Start Date: {start_date}, End Date: {end_date}")
 
+    # Фильтруем данные
+    data = PollutionData.objects.filter(city_name=city_name)
     if start_date:
-        start_date = datetime.strptime(start_date, '%Y-%m-%dT%H:%M')
-        filter_conditions['timestamp__gte'] = start_date
-
+        data = data.filter(timestamp__gte=start_date)
     if end_date:
-        end_date = datetime.strptime(end_date, '%Y-%m-%dT%H:%M')
-        filter_conditions['timestamp__lte'] = end_date
+        data = data.filter(timestamp__lte=end_date)
 
-    # Получаем данные для города по указанным датам
-    data = PollutionData.objects.filter(**filter_conditions).values('timestamp', 'pm25', 'pm10', 'no2', 'co', 'so2')
+    # Проверка наличия данных
+    if not data.exists():
+        return JsonResponse({'error': 'Нет данных для выбранного города или периода времени'}, status=404)
 
-    return JsonResponse(list(data), safe=False)
+    # Возвращаем данные
+    result = data.values('timestamp', 'pm25', 'pm10', 'no2', 'co', 'so2')
+    return JsonResponse(list(result), safe=False)
 
 def air_quality_graph_page(request):
-    cities = PollutionData.objects.values_list('city_name', flat=True).distinct()  # Получаем все города
-    return render(request, 'monitoring/air_quality_graph.html', {'cities': cities})
+    # Получаем уникальные города из базы данных
+    cities = (
+        PollutionData.objects.exclude(city_name__isnull=True)
+        .exclude(city_name='')
+        .values_list('city_name', flat=True)
+        .distinct()
+    )
+    # Приводим названия городов к списку уникальных значений
+    unique_cities = sorted(set(cities), key=lambda city: city.lower())  # Сортируем без изменения регистра
+    return render(request, 'monitoring/air_quality_graph.html', {'cities': unique_cities})
+
+class Lower(Func):
+    function = 'LOWER'
