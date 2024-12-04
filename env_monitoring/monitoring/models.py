@@ -13,3 +13,8 @@ class PollutionData(models.Model):
     so2 = models.FloatField(null=True, blank=True)
     timestamp = models.DateTimeField()
 
+    def __str__(self):
+        return f"{self.city_name} - {self.timestamp}"
+
+    class Meta:
+        ordering = ['timestamp']

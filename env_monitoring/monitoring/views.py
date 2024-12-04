@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.utils.dateparse import parse_datetime
 from datetime import datetime
+
 from .services.data_fetcher import save_air_pollution_data
 from .models import PollutionData
 
@@ -88,3 +89,13 @@ def air_quality_data(request):
 
 def air_quality_map(request):
     return render(request, 'monitoring/air_quality_map.html')
+
+def air_quality_graph(request):
+    # Получаем все данные для города Волгоград
+    city_name = "Волгоград"
+    data = PollutionData.objects.filter(city_name=city_name).values('timestamp', 'pm25', 'pm10', 'no2', 'co', 'so2')
+
+    return JsonResponse(list(data), safe=False)
+
+def air_quality_graph_page(request):
+    return render(request, 'monitoring/air_quality_graph.html')

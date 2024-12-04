@@ -1,0 +1,99 @@
+<!-- air_quality_graph.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>График качества воздуха в Волгограде</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+</head>
+<body>
+    <h1>График качества воздуха в Волгограде</h1>
+
+    <!-- Канвас для графика -->
+    <canvas id="airQualityChart" width="400" height="200"></canvas>
+
+    <script>
+    // Получаем данные с сервера
+    fetch('/air-quality-graph/')
+        .then(response => response.json())
+        .then(data => {
+            // Строим график с полученными данными
+            buildChart(data);
+        });
+
+    // Функция для построения графика
+    function buildChart(data) {
+        const timestamps = data.map(d => new Date(d.timestamp));  // Преобразуем строку в объект Date
+        const pm25 = data.map(d => d.pm25);
+        const pm10 = data.map(d => d.pm10);
+        const no2 = data.map(d => d.no2);
+        const co = data.map(d => d.co);
+        const so2 = data.map(d => d.so2);
+
+        const ctx = document.getElementById('airQualityChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timestamps,
+                datasets: [
+                    {
+                        label: 'PM2.5',
+                        data: pm25,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'PM10',
+                        data: pm10,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'NO2',
+                        data: no2,
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'CO',
+                        data: co,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        fill: false
+                    },
+                    {
+                        label: 'SO2',
+                        data: so2,
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'time',  // Указываем тип оси как time
+                        time: {
+                            unit: 'minute',  // Настройка для времени
+                            tooltipFormat: 'll HH:mm'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Дата и время'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Концентрация (мкг/м³)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>
