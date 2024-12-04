@@ -10,7 +10,7 @@
 <body>
     <h1>График качества воздуха</h1>
 
-    <!-- Форма для выбора города -->
+    <!-- Форма для выбора города и периода -->
     <form id="city-form">
         <label for="city">Выберите город:</label>
         <select id="city" name="city">
@@ -18,6 +18,16 @@
                 <option value="{{ city }}">{{ city }}</option>
             {% endfor %}
         </select>
+        <br><br>
+
+        <label for="start-date">Начальная дата:</label>
+        <input type="datetime-local" id="start-date" name="start-date">
+        <br><br>
+
+        <label for="end-date">Конечная дата:</label>
+        <input type="datetime-local" id="end-date" name="end-date">
+        <br><br>
+
         <button type="submit">Показать график</button>
     </form>
 
@@ -31,7 +41,19 @@
         event.preventDefault();  // Предотвратить перезагрузку страницы
 
         const city = document.getElementById('city').value;
-        fetch(`/air-quality-graph/?city=${city}`)
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+
+        // Формируем URL с параметрами
+        let url = `/air-quality-graph/?city=${city}`;
+        if (startDate) {
+            url += `&start_date=${startDate}`;
+        }
+        if (endDate) {
+            url += `&end_date=${endDate}`;
+        }
+
+        fetch(url)
             .then(response => response.json())
             .then(data => {
                 buildChart(data);  // Строим график

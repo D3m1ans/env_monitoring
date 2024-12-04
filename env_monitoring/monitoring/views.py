@@ -91,8 +91,23 @@ def air_quality_map(request):
     return render(request, 'monitoring/air_quality_map.html')
 
 def air_quality_graph(request):
-    city_name = request.GET.get('city', 'Волгоград')  # По умолчанию будет Волгоград
-    data = PollutionData.objects.filter(city_name=city_name).values('timestamp', 'pm25', 'pm10', 'no2', 'co', 'so2')
+    city_name = request.GET.get('city')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    # Начинаем фильтрацию по городу
+    filter_conditions = {'city_name': city_name}
+
+    if start_date:
+        start_date = datetime.strptime(start_date, '%Y-%m-%dT%H:%M')
+        filter_conditions['timestamp__gte'] = start_date
+
+    if end_date:
+        end_date = datetime.strptime(end_date, '%Y-%m-%dT%H:%M')
+        filter_conditions['timestamp__lte'] = end_date
+
+    # Получаем данные для города по указанным датам
+    data = PollutionData.objects.filter(**filter_conditions).values('timestamp', 'pm25', 'pm10', 'no2', 'co', 'so2')
 
     return JsonResponse(list(data), safe=False)
 
