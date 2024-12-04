@@ -1,30 +1,50 @@
-<!-- air_quality_graph.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>График качества воздуха в Волгограде</title>
+    <title>График качества воздуха</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 </head>
 <body>
-    <h1>График качества воздуха в Волгограде</h1>
+    <h1>График качества воздуха</h1>
+
+    <!-- Форма для выбора города -->
+    <form id="city-form">
+        <label for="city">Выберите город:</label>
+        <select id="city" name="city">
+            {% for city in cities %}
+                <option value="{{ city }}">{{ city }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Показать график</button>
+    </form>
 
     <!-- Канвас для графика -->
     <canvas id="airQualityChart" width="400" height="200"></canvas>
 
     <script>
-    // Получаем данные с сервера
-    fetch('/air-quality-graph/')
-        .then(response => response.json())
-        .then(data => {
-            // Строим график с полученными данными
-            buildChart(data);
-        });
+    let myChart = null;  // Переменная для хранения графика
 
-    // Функция для построения графика
+    document.getElementById('city-form').addEventListener('submit', function(event) {
+        event.preventDefault();  // Предотвратить перезагрузку страницы
+
+        const city = document.getElementById('city').value;
+        fetch(`/air-quality-graph/?city=${city}`)
+            .then(response => response.json())
+            .then(data => {
+                buildChart(data);  // Строим график
+            })
+            .catch(error => console.error('Ошибка при загрузке данных:', error));
+    });
+
     function buildChart(data) {
+        // Удаляем старый график, если он существует
+        if (myChart) {
+            myChart.destroy();
+        }
+
         const timestamps = data.map(d => new Date(d.timestamp));  // Преобразуем строку в объект Date
         const pm25 = data.map(d => d.pm25);
         const pm10 = data.map(d => d.pm10);
@@ -33,7 +53,7 @@
         const so2 = data.map(d => d.so2);
 
         const ctx = document.getElementById('airQualityChart').getContext('2d');
-        new Chart(ctx, {
+        myChart = new Chart(ctx, {  // Сохраняем новый график в переменную myChart
             type: 'line',
             data: {
                 labels: timestamps,
@@ -94,6 +114,6 @@
             }
         });
     }
-</script>
+    </script>
 </body>
 </html>

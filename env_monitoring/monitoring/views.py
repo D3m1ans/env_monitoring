@@ -91,11 +91,11 @@ def air_quality_map(request):
     return render(request, 'monitoring/air_quality_map.html')
 
 def air_quality_graph(request):
-    # Получаем все данные для города Волгоград
-    city_name = "Волгоград"
+    city_name = request.GET.get('city', 'Волгоград')  # По умолчанию будет Волгоград
     data = PollutionData.objects.filter(city_name=city_name).values('timestamp', 'pm25', 'pm10', 'no2', 'co', 'so2')
 
     return JsonResponse(list(data), safe=False)
 
 def air_quality_graph_page(request):
-    return render(request, 'monitoring/air_quality_graph.html')
+    cities = PollutionData.objects.values_list('city_name', flat=True).distinct()  # Получаем все города
+    return render(request, 'monitoring/air_quality_graph.html', {'cities': cities})
