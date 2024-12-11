@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Средние показатели загрязнений</title>
+</head>
+<body>
+    <h1>Средние показатели загрязнений</h1>
+
+    <!-- Выбор города -->
+    <label for="city">Выберите город:</label>
+    <select id="city">
+        <option value="">-- Выберите город --</option>
+        {% for city in cities %}
+            <option value="{{ city }}">{{ city }}</option>
+        {% endfor %}
+    </select>
+
+    <!-- Поля для интервала дат -->
+    <label for="start_date">Начальная дата:</label>
+    <input type="datetime-local" id="start_date">
+
+    <label for="end_date">Конечная дата:</label>
+    <input type="datetime-local" id="end_date">
+
+    <button id="calculateAverages">Рассчитать средние</button>
+
+    <!-- Результаты -->
+    <div id="results">
+        <h2>Результаты</h2>
+        <ul>
+            <li>Средний PM2.5: <span id="avg_pm25">N/A</span></li>
+            <li>Средний PM10: <span id="avg_pm10">N/A</span></li>
+            <li>Средний CO: <span id="avg_co">N/A</span></li>
+            <li>Средний NO2: <span id="avg_no2">N/A</span></li>
+            <li>Средний SO2: <span id="avg_so2">N/A</span></li>
+        </ul>
+    </div>
+
+    <script>
+        document.getElementById('calculateAverages').addEventListener('click', () => {
+            const city = document.getElementById('city').value;
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+
+            if (!city) {
+                alert("Пожалуйста, выберите город.");
+                return;
+            }
+
+            fetch(`/air-quality-averages/?city=${encodeURIComponent(city)}&start_date=${startDate}&end_date=${endDate}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка загрузки данных');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Отображаем результаты
+                    document.getElementById('avg_pm25').textContent = data.avg_pm25 !== null ? data.avg_pm25.toFixed(2) : 'N/A';
+                    document.getElementById('avg_pm10').textContent = data.avg_pm10 !== null ? data.avg_pm10.toFixed(2) : 'N/A';
+                    document.getElementById('avg_co').textContent = data.avg_co !== null ? data.avg_co.toFixed(2) : 'N/A';
+                    document.getElementById('avg_no2').textContent = data.avg_no2 !== null ? data.avg_no2.toFixed(2) : 'N/A';
+                    document.getElementById('avg_so2').textContent = data.avg_so2 !== null ? data.avg_so2.toFixed(2) : 'N/A';
+                })
+                .catch(error => {
+                    console.error("Ошибка:", error);
+                    alert("Не удалось загрузить данные. Проверьте правильность ввода.");
+                });
+        });
+    </script>
+</body>
+</html>

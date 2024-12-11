@@ -1,9 +1,10 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.utils.dateparse import parse_datetime
-from django.db.models import Q
-from django.db.models import Func
+from django.db.models import Avg
 from datetime import datetime
+
+from fontTools.misc.timeTools import timestampNow
 
 from .services.data_fetcher import save_air_pollution_data
 from .models import PollutionData
@@ -98,26 +99,60 @@ def air_quality_graph(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
-    # Отладка: выводим параметры
-    print(f"City: {city_name}, Start Date: {start_date}, End Date: {end_date}")
-
-    # Фильтруем данные
     data = PollutionData.objects.filter(city_name=city_name)
     if start_date:
         data = data.filter(timestamp__gte=start_date)
     if end_date:
         data = data.filter(timestamp__lte=end_date)
 
-    # Проверка наличия данных
     if not data.exists():
         return JsonResponse({'error': 'Нет данных для выбранного города или периода времени'}, status=404)
 
-    # Возвращаем данные
     result = data.values('timestamp', 'pm25', 'pm10', 'no2', 'co', 'so2')
     return JsonResponse(list(result), safe=False)
 
 def air_quality_graph_page(request):
-    # Получаем уникальные города из базы данных
+
+    unique_cities = get_cities()  # Сортируем без изменения регистра
+    return render(request, 'monitoring/air_quality_graph.html', {'cities': unique_cities})
+
+def air_quality_averages(request):
+    city = request.GET.get('city')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    if not city:
+        return JsonResponse({'error': 'Город не выбран'}, status=400)
+
+    data = PollutionData.objects.filter(city_name=city)
+
+    if start_date:
+        data = data.filter(timestamp__gte=start_date)
+    if end_date:
+        data = data.filter(timestamp__lte=end_date)
+
+    chart_data = data.values('timestamp', 'pm25', 'pm10', 'co', 'no2', 'so2')
+
+    if not data.exists:
+        return JsonResponse({'error': 'Нет данных'})
+
+    averages = data.aggregate(
+        avg_pm25=Avg('pm25'),
+        avg_pm10=Avg('pm10'),
+        avg_co=Avg('co'),
+        avg_no2=Avg('no2'),
+        avg_so2=Avg('so2')
+    )
+
+    return JsonResponse(averages)
+
+def air_quality_averages_page(request):
+
+    unique_cities = get_cities()  # Сортируем без изменения регистра
+    return render(request, 'monitoring/air_quality_averages.html', {'cities': unique_cities})
+
+
+def get_cities():
     cities = (
         PollutionData.objects.exclude(city_name__isnull=True)
         .exclude(city_name='')
@@ -125,8 +160,6 @@ def air_quality_graph_page(request):
         .distinct()
     )
     # Приводим названия городов к списку уникальных значений
-    unique_cities = sorted(set(cities), key=lambda city: city.lower())  # Сортируем без изменения регистра
-    return render(request, 'monitoring/air_quality_graph.html', {'cities': unique_cities})
+    unique_cities = sorted(set(cities), key=lambda city: city.lower())
 
-class Lower(Func):
-    function = 'LOWER'
+    return unique_cities
