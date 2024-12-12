@@ -150,16 +150,13 @@ def air_quality_averages_page(request):
     return render(request, 'monitoring/air_quality_averages.html', {'cities': unique_cities})
 
 def calculate_aqi_component(concentration, breakpoints):
-
     if concentration is None:
         return None
-
     for i in range(len(breakpoints) - 1):
         if breakpoints[i][0] <= concentration <= breakpoints[i + 1][0]:
             c_low, c_high = breakpoints[i][0], breakpoints[i + 1][0]
             i_low, i_high = breakpoints[i][1], breakpoints[i + 1][1]
             return ((i_high - i_low) / (c_high - c_low)) * (concentration - c_low) + i_low
-
     return None
 
 def calculate_aqi(pm25, pm10, co, no2, so2):
@@ -178,7 +175,6 @@ def calculate_aqi(pm25, pm10, co, no2, so2):
     breakpoints_so2 = [
         (0, 0), (35, 50), (75, 100), (185, 150), (304, 200), (604, 300), (804, 400), (1004, 500)
     ]
-
     components = [
         calculate_aqi_component(pm25, breakpoints_pm25),
         calculate_aqi_component(pm10, breakpoints_pm10),
@@ -186,27 +182,40 @@ def calculate_aqi(pm25, pm10, co, no2, so2):
         calculate_aqi_component(no2, breakpoints_no2),
         calculate_aqi_component(so2, breakpoints_so2),
     ]
-
     return max(filter(None, components))
 
 def aqi_view(request):
     city = request.GET.get('city')
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
     if not city:
         return JsonResponse({'error': 'Город не указан'}, status=400)
 
     try:
-        # Получаем данные для указанного города
+        # Парсим даты, если они переданы
+        start_date = parse_datetime(start_date_str) if start_date_str else None
+        end_date = parse_datetime(end_date_str) if end_date_str else None
+
+        # Получаем данные для указанного города и в пределах дат, если они заданы
         data = PollutionData.objects.filter(city_name=city)
+
+        if start_date:
+            data = data.filter(timestamp__gte=start_date)
+        if end_date:
+            data = data.filter(timestamp__lte=end_date)
+
         if not data.exists():
-            return JsonResponse({'error': f'Нет данных для города {city}'}, status=404)
+            return JsonResponse({'error': f'Нет данных для города {city} в указанный период'}, status=404)
 
         # Формируем список результатов с AQI
         results = []
         for record in data:
             aqi_value = calculate_aqi(record.pm25, record.pm10, record.co, record.no2, record.so2)
+            aqi_value_rounded = round(aqi_value, 1)  # Округляем до одной десятичной
             results.append({
                 'timestamp': record.timestamp,
-                'aqi': aqi_value,
+                'aqi': aqi_value_rounded,
             })
 
         return JsonResponse({'aqi_results': results})
