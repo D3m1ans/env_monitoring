@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Качество воздуха (AQI)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #aqiResults {
+            margin-top: 20px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Качество воздуха (AQI)</h1>
+
+    <label for="city">Выберите город:</label>
+    <select id="city">
+        <option value="">-- Выберите город --</option>
+        {% for city in cities %}
+        <option value="{{ city }}">{{ city }}</option>
+        {% endfor %}
+    </select>
+
+    <button id="calculateAQI">Рассчитать AQI</button>
+
+    <div id="aqiResults">
+        <h2>Результаты AQI</h2>
+        <ul id="aqiList"></ul>
+    </div>
+
+    <script>
+        document.getElementById('calculateAQI').addEventListener('click', () => {
+            const city = document.getElementById('city').value;
+
+            if (!city) {
+                alert("Пожалуйста, выберите город.");
+                return;
+            }
+
+            fetch(`/aqi/calculate/?city=${encodeURIComponent(city)}`)
+                .then(response => response.json())
+                .then(data => showAQIResults(data));
+        });
+
+        function getAQIDescription(aqi) {
+            if (aqi <= 50) return "Хорошо";
+            if (aqi <= 100) return "Умеренно";
+            if (aqi <= 150) return "Незначительное воздействие";
+            if (aqi <= 200) return "Вредно";
+            if (aqi <= 300) return "Очень вредно";
+            return "Опасно";
+        }
+
+        function showAQIResults(data) {
+            const aqiList = document.getElementById('aqiList');
+            aqiList.innerHTML = '';
+
+            if (data.error) {
+                aqiList.innerHTML = `<li>${data.error}</li>`;
+                return;
+            }
+
+            data.aqi_results.forEach(result => {
+                const date = new Date(result.timestamp).toLocaleString();
+                const description = getAQIDescription(result.aqi);
+                const li = document.createElement('li');
+                li.textContent = `Дата: ${date}, AQI: ${result.aqi} (${description})`;
+                aqiList.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>
