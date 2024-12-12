@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.utils.dateparse import parse_datetime
 from django.db.models import Avg
-from datetime import datetime
+from django.utils.dateparse import parse_date
 
 from fontTools.misc.timeTools import timestampNow
 
@@ -184,41 +184,53 @@ def calculate_aqi(pm25, pm10, co, no2, so2):
     ]
     return max(filter(None, components))
 
+
 def aqi_view(request):
     city = request.GET.get('city')
-    start_date_str = request.GET.get('start_date')
-    end_date_str = request.GET.get('end_date')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
 
     if not city:
         return JsonResponse({'error': 'Город не указан'}, status=400)
 
     try:
-        # Парсим даты, если они переданы
-        start_date = parse_datetime(start_date_str) if start_date_str else None
-        end_date = parse_datetime(end_date_str) if end_date_str else None
-
-        # Получаем данные для указанного города и в пределах дат, если они заданы
-        data = PollutionData.objects.filter(city_name=city)
-
+        # Формируем фильтры для даты, если они указаны
+        filters = {'city_name': city}
         if start_date:
-            data = data.filter(timestamp__gte=start_date)
+            filters['timestamp__gte'] = parse_date(start_date)
         if end_date:
-            data = data.filter(timestamp__lte=end_date)
+            filters['timestamp__lte'] = parse_date(end_date)
 
+        # Получаем данные для указанного города и периода
+        data = PollutionData.objects.filter(**filters)
         if not data.exists():
             return JsonResponse({'error': f'Нет данных для города {city} в указанный период'}, status=404)
 
-        # Формируем список результатов с AQI
+        # Формируем список результатов с AQI и рассчитываем средний
         results = []
+        total_aqi = 0
+        count = 0
+
         for record in data:
             aqi_value = calculate_aqi(record.pm25, record.pm10, record.co, record.no2, record.so2)
-            aqi_value_rounded = round(aqi_value, 1)  # Округляем до одной десятичной
-            results.append({
-                'timestamp': record.timestamp,
-                'aqi': aqi_value_rounded,
-            })
+            if aqi_value is not None:
+                aqi_value_rounded = round(aqi_value, 1)  # Округляем до одной десятичной
+                results.append({
+                    'timestamp': record.timestamp,
+                    'aqi': aqi_value_rounded,
+                })
+                total_aqi += aqi_value_rounded
+                count += 1
 
-        return JsonResponse({'aqi_results': results})
+        average_aqi = None
+        if count > 0:
+            average_aqi = round(total_aqi / count, 1)
+
+        return JsonResponse({
+            'aqi_results': results,
+            'average_aqi': average_aqi,
+        })
+
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 

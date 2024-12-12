@@ -33,15 +33,11 @@
         {% endfor %}
     </select>
 
-    <br><br>
+    <label for="start_date">Дата начала:</label>
+    <input type="date" id="start_date">
 
-    <label for="start_date">Начальная дата:</label>
-    <input type="datetime-local" id="start_date">
-
-    <label for="end_date">Конечная дата:</label>
-    <input type="datetime-local" id="end_date">
-
-    <br><br>
+    <label for="end_date">Дата окончания:</label>
+    <input type="date" id="end_date">
 
     <button id="calculateAQI">Рассчитать AQI</button>
 
@@ -62,12 +58,8 @@
             }
 
             let url = `/aqi/calculate/?city=${encodeURIComponent(city)}`;
-            if (startDate) {
-                url += `&start_date=${encodeURIComponent(startDate)}`;
-            }
-            if (endDate) {
-                url += `&end_date=${encodeURIComponent(endDate)}`;
-            }
+            if (startDate) url += `&start_date=${startDate}`;
+            if (endDate) url += `&end_date=${endDate}`;
 
             fetch(url)
                 .then(response => response.json())
@@ -99,6 +91,12 @@
                 li.textContent = `Дата: ${date}, AQI: ${result.aqi} (${description})`;
                 aqiList.appendChild(li);
             });
+
+            if (data.average_aqi) {
+                const li = document.createElement('li');
+                li.textContent = `Средний AQI: ${data.average_aqi}`;
+                aqiList.appendChild(li);
+            }
         }
     </script>
 </body>
