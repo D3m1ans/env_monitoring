@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Средние показатели загрязнений</title>
+    <title>Анализ качества воздуха</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 </head>
 <body>
-    <h1>Средние показатели загрязнений</h1>
+    <h1>Анализ качества воздуха</h1>
 
     <!-- Выбор города -->
     <label for="city">Выберите город:</label>
@@ -17,18 +19,22 @@
         {% endfor %}
     </select>
 
-    <!-- Поля для интервала дат -->
+    <!-- Поля выбора даты -->
     <label for="start_date">Начальная дата:</label>
     <input type="datetime-local" id="start_date">
 
     <label for="end_date">Конечная дата:</label>
     <input type="datetime-local" id="end_date">
 
+    <button id="showGraph">Показать график</button>
     <button id="calculateAverages">Рассчитать средние</button>
+
+    <!-- Канвас для графика -->
+    <canvas id="airQualityChart" width="400" height="200"></canvas>
 
     <!-- Результаты -->
     <div id="results">
-        <h2>Результаты</h2>
+        <h2>Средние показатели</h2>
         <ul>
             <li>Средний PM2.5: <span id="avg_pm25">N/A</span></li>
             <li>Средний PM10: <span id="avg_pm10">N/A</span></li>
@@ -39,6 +45,91 @@
     </div>
 
     <script>
+        // Функция для загрузки графиков
+        document.getElementById('showGraph').addEventListener('click', () => {
+            const city = document.getElementById('city').value;
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+
+            if (!city) {
+                alert("Пожалуйста, выберите город.");
+                return;
+            }
+
+            fetch(`/air-quality-graph/?city=${encodeURIComponent(city)}&start_date=${startDate}&end_date=${endDate}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка загрузки данных');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    buildChart(data, startDate, endDate);
+                })
+                .catch(error => {
+                    console.error("Ошибка:", error);
+                });
+        });
+
+        let chartInstance = null;
+
+        function buildChart(data, startDate, endDate) {
+            const timestamps = data.map(d => new Date(d.timestamp));
+            const pm25 = data.map(d => d.pm25);
+            const pm10 = data.map(d => d.pm10);
+            const no2 = data.map(d => d.no2);
+            const co = data.map(d => d.co);
+            const so2 = data.map(d => d.so2);
+
+            const ctx = document.getElementById('airQualityChart').getContext('2d');
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [
+                        { label: 'PM2.5', data: pm25, borderColor: 'rgba(255, 99, 132, 1)', fill: false },
+                        { label: 'PM10', data: pm10, borderColor: 'rgba(54, 162, 235, 1)', fill: false },
+                        { label: 'NO2', data: no2, borderColor: 'rgba(255, 159, 64, 1)', fill: false },
+                        { label: 'CO', data: co, borderColor: 'rgba(75, 192, 192, 1)', fill: false },
+                        { label: 'SO2', data: so2, borderColor: 'rgba(153, 102, 255, 1)', fill: false }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `График качества воздуха ${startDate && endDate ? `за период с ${startDate} по ${endDate}` : ''}`
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                displayFormats: {
+                                    minute: 'MMM d, HH:mm',
+                                    hour: 'MMM d, HH:mm',
+                                    day: 'MMM d, HH:mm'
+                                },
+                                tooltipFormat: 'MMM d, yyyy HH:mm'
+                            },
+                            title: { display: true, text: 'Дата и время' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Концентрация (мкг/м³)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Функция для расчета средних значений
         document.getElementById('calculateAverages').addEventListener('click', () => {
             const city = document.getElementById('city').value;
             const startDate = document.getElementById('start_date').value;
@@ -57,7 +148,6 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Отображаем результаты
                     document.getElementById('avg_pm25').textContent = data.avg_pm25 !== null ? data.avg_pm25.toFixed(2) : 'N/A';
                     document.getElementById('avg_pm10').textContent = data.avg_pm10 !== null ? data.avg_pm10.toFixed(2) : 'N/A';
                     document.getElementById('avg_co').textContent = data.avg_co !== null ? data.avg_co.toFixed(2) : 'N/A';
@@ -66,7 +156,6 @@
                 })
                 .catch(error => {
                     console.error("Ошибка:", error);
-                    alert("Не удалось загрузить данные. Проверьте правильность ввода.");
                 });
         });
     </script>
