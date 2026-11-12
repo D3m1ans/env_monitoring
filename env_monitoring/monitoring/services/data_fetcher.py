@@ -1,10 +1,11 @@
 import requests
+from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.utils.timezone import now
 from datetime import datetime, timezone
 from monitoring.models import PollutionData
 
-API_KEY = "b1d12b01e343f1c3941a7e242c6c57c5"
+API_KEY = settings.OPENWEATHER_API_KEY
 
 def fetch_air_pollution_data(city_name):
 
