@@ -1,0 +1,8 @@
+Django>=5.1,<5.2
+psycopg2-binary
+requests
+celery
+redis
+django-celery-beat
+django-celery-results
+python-dotenv
