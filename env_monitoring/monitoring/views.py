@@ -4,8 +4,6 @@ from django.utils.dateparse import parse_datetime
 from django.db.models import Avg
 from django.utils.dateparse import parse_date
 
-from fontTools.misc.timeTools import timestampNow
-
 from .services.data_fetcher import save_air_pollution_data
 from .models import PollutionData
 
@@ -182,7 +180,8 @@ def calculate_aqi(pm25, pm10, co, no2, so2):
         calculate_aqi_component(no2, breakpoints_no2),
         calculate_aqi_component(so2, breakpoints_so2),
     ]
-    return max(filter(None, components))
+    values = [c for c in components if c is not None]
+    return max(values) if values else None
 
 
 def aqi_view(request):
